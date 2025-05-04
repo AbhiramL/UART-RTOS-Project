@@ -26,15 +26,14 @@
 //**************************************************************************
 // global variables
 //**************************************************************************
-
-
+uartPort* uart0 = NULL;
 
 void setup() 
 {
 
-   uartPort* uart0 = new uartPort(SERIAL0);	
+   uart0 = new uartPort(SERIAL0);	
    uart0->write((uint8_t*)"HELLO", 5);
-  vNopDelayMS(1000); // prevents usb driver crash on startup, do not omit this
+//  vNopDelayMS(1000); // prevents usb driver crash on startup, do not omit this
   //while (!SERIAL) ;  // Wait for serial terminal to open port before starting program
 
    
@@ -62,7 +61,11 @@ void setup()
 //*****************************************************************
 void loop() 
 {
-    //uart0->write((uint8_t*)".", 1);
+	int i;
+    uart0->write((uint8_t*)".", 1);
+	
+	i=0;
+	while(i++ < 1000){};
 }
 
 
