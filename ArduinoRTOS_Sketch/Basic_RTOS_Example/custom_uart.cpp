@@ -162,7 +162,7 @@ uartPort::uartPort(uartRegisterMap* baseAddr)
 	uartRegisters->CTRLB.bit_data.chsize = 0x0;
 	
 	//Set LSB or MSB first
-	uartRegisters->CTRLA.bit_data.dord = 0; //MSB=0
+	uartRegisters->CTRLA.bit_data.dord = 1; //MSB=0, LSB=1;
 	
 	//Set parity
 	uartRegisters->CTRLB.bit_data.pmode = 0; //0=even 1=odd parity
@@ -178,14 +178,13 @@ uartPort::uartPort(uartRegisterMap* baseAddr)
 	
 	//Wait for ENABLE sync
 	while (uartRegisters->SYNCBUSY.bit_data.enable){};
-	
-	//Enable pins
 	uartRegisters->CTRLB.bit_data.txen = 1;
-	uartRegisters->CTRLB.bit_data.rxen = 1;
 	
 	//Wait for ENABLE sync
 	while (uartRegisters->SYNCBUSY.bit_data.enable){};
+	uartRegisters->CTRLB.bit_data.rxen = 1;
 	
+	while (uartRegisters->SYNCBUSY.bit_data.enable){};		
 }
 
 uint32_t uartPort::write(uint8_t* buf, uint32_t maxSize)
