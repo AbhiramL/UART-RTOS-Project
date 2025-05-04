@@ -145,8 +145,8 @@ uartPort::uartPort(uartRegisterMap* baseAddr)
 	//Set default sample rate x16
 	uartRegisters->CTRLA.bit_data.sampr = 0x1; //x16 sample rate with frac baud rate generation
 	
-	//Set default Baud rate, 115200
-	uint32_t baudTimes8 = (SystemCoreClock * 8) / (sampleRateValue * baudrate);
+	//Set default Baud rate, 115200, 16 sample rate
+	uint32_t baudTimes8 = (SystemCoreClock * 8) / (16 * 115200);
 	uartRegisters->BAUD.FRAC.FP   = (baudTimes8 % 8);
 	uartRegisters->BAUD.FRAC.BAUD = (baudTimes8 / 8);
 	
