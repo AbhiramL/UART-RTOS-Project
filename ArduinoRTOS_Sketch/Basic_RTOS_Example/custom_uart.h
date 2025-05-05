@@ -20,21 +20,25 @@ class uartPort
 		uartPort(uartRegisterMap* baseAddr, uint8_t txPin, uint8_t rxPin, uint32_t baudRate);
 		uint32_t write(uint8_t* buf, uint32_t maxSize);
 		uint8_t read();
+		void IRQ_RXC_Handler();
 		~uartPort();
 		
 	private:
-		struct FIFO_Buffer
-		{
-			uint8_t buffer[200];
-			uint8_t* tail;
-			uint8_t* head;
-			uint8_t count;
-		};
-	
-		void initClockNVIC();
 			
+		struct ringBuf
+		{
+			uint8_t buf[100];
+			int head = 0;
+			int tail = 0;
+		};
+		
+		void initClockNVIC();
+		
 		uartRegisterMap* uartRegisters;
 		GenClockRegMap* genClkReg;
+		ringBuf receivedBytes;
+		
+		
 };
 
 /****************************************************/
