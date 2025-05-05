@@ -233,8 +233,7 @@ uint8_t uartPort::read()
 {
 	if(receivedBytes.head == receivedBytes.tail)
 	{
-		
-		
+		return 0;		
 	}
 	else if(receivedBytes.head >= sizeof(receivedBytes.buf))
 	{
