@@ -231,23 +231,36 @@ uint32_t uartPort::write(uint8_t* buf, uint32_t maxSize)
 
 uint8_t uartPort::read()
 {
-	return recievedBytes;
+	if(receivedBytes.head == receivedBytes.tail)
+	{
+		
+		
+	}
+	else if(receivedBytes.head >= sizeof(receivedBytes.buf))
+	{
+		receivedBytes.head = 0;
+		return receivedBytes.buf[receivedBytes.head++];
+	}
+	else
+	{
+		
+		
+	}
+	
 }
 
 void uartPort::IRQ_RXC_Handler()
 {
 	if(uartRegisters->INTFLAG.bit_data.rxc == 1)
 	{
-		receivedBytes.buf[receivedBytes.tail] = uartRegisters->DATA.bit_data.data;
-		
 		if(receivedBytes.tail >= sizeof(receivedBytes.buf))
 		{
-			receivedBytes
-			
+			receivedBytes.tail = 0;
+			receivedBytes.buf[receivedBytes.tail++] = uartRegisters->DATA.bit_data.data;
 		}
 		else
 		{
-			
+			receivedBytes.buf[receivedBytes.tail++] = uartRegisters->DATA.bit_data.data;
 		}
 	}
 }

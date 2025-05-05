@@ -37,6 +37,7 @@ class uartPort
 		uartRegisterMap* uartRegisters;
 		GenClockRegMap* genClkReg;
 		ringBuf receivedBytes;
+		uint8_t returnBuffer;
 		
 		
 };
