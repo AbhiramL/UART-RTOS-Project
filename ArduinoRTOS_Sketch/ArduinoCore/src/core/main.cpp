@@ -48,8 +48,8 @@ int main( void )
 
   for (;;)
   {
-    loop();
-    if (serialEventRun) serialEventRun();
+ //   loop();
+ //   if (serialEventRun) serialEventRun();
   }
 
   return 0;

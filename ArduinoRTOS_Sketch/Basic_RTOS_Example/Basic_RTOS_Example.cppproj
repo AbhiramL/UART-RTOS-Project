@@ -297,16 +297,13 @@
     </ToolchainSettings>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="custom_uart.cpp">
-      <SubType>compile</SubType>
-    </Compile>
-    <Compile Include="custom_uart.h">
-      <SubType>compile</SubType>
-    </Compile>
-    <Compile Include="custom_uart_reg_def.h">
-      <SubType>compile</SubType>
-    </Compile>
     <Compile Include="Main.cpp">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="SerialMonitor.cpp">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="SerialMonitor.h">
       <SubType>compile</SubType>
     </Compile>
     <Content Include="readme.html">

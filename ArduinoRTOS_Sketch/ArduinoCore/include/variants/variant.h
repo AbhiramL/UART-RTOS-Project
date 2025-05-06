@@ -41,6 +41,7 @@
 #ifdef __cplusplus
 #include "SERCOM.h"
 #include "Uart.h"
+#include "AL_Serial.h"
 #endif // __cplusplus
 
 #ifdef __cplusplus

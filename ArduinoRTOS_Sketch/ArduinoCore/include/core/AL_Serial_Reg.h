@@ -7,7 +7,7 @@
 #ifndef CUSTOM_UART_REG_DEF_H_
 #define CUSTOM_UART_REG_DEF_H_
 
-#define GCLK              0x40000C00UL /**< \brief (GCLK) APB Base Address */
+//#define GCLK              0x40000C00UL /**< \brief (GCLK) APB Base Address */
 #define GCLK_SERCOM0_CLKID          (0x14U)
 #define GCLK_SERCOM1_CLKID          (0x15U)
 #define GCLK_SERCOM2_CLKID          (0x16U)
