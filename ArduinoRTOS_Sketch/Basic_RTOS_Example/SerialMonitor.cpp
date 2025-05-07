@@ -33,7 +33,7 @@ void serialMonitor(void *p)
 		//send bytes.
 		//serial0->write(dataReceived, counter);
 				
-		counter = serial0->write((uint8_t*)"sm test", 10);
+		counter = serial0->write((uint8_t*)"sm test", 7);
 				
 		//sleep for 1000ticks.
 		vTaskDelay(1000);	
