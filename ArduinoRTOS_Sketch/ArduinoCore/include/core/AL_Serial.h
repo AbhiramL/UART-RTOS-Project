@@ -4,13 +4,12 @@
 #include <sam.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdbool.h>
 #include "AL_Serial_Reg.h"
 
 class uartPort
 {
 	public:
-		uint32_t write(uint8_t* buf, uint32_t maxSize);
+		void write(uint8_t* buf, uint16_t maxSize);
 		uint8_t readByte();
 		static uartPort* getInstance(int portNum);
 		static void IRQ_Handler(int portNum);
@@ -28,12 +27,13 @@ class uartPort
 		uartPort(uartRegisterMap* baseAddr, uint32_t baudRate);
 		uartPort(uartRegisterMap* baseAddr, uint8_t txPin, uint8_t rxPin, uint32_t baudRate);
 		
+		void writeByte(uint8_t data);
+		
 		void initClockNVIC();
 		
 		uartRegisterMap* uartRegisters;
-		GenClockRegMap* genClkReg;
-		ringBuf receivedBytes;
-		uint8_t returnBuffer;
+		ringBuf rx_buffer;
+		ringBuf tx_buffer;
 };
 
 

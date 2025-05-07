@@ -33,12 +33,9 @@ void serialMonitor(void *p)
 			} while (byteData != NULL);
 		}
 		
-		
-		//serial0->write((uint8_t*)"SERIAL 0 received : ", sizeof("SERIAL 0 received : "));
-		serial0->write(dataReceived, counter);
-		//serial0->write((uint8_t*)"\n", 1);
+		serial0->write((uint8_t*)"HELLO", sizeof("HELLO"));
 				
 		//sleep
 		vTaskDelay(1000);	
 	}//end while
-}
+}//end task

@@ -13,7 +13,7 @@
 
 uartPort* uartPort::getInstance(int portNum)
 {
-	static uartPort serialPort0(SERIAL0);
+	static uartPort serialPort0 = uartPort(SERIAL0);
 	//static uartPort serialPort1(SERIAL1);
 	//static uartPort serialPort0(SERIAL0);
 	
@@ -42,8 +42,7 @@ uartPort::uartPort(uartRegisterMap* baseAddr, uint8_t txPin, uint8_t rxPin, uint
 {
 	//base addr should be only Serial 0.
 	uartRegisters = baseAddr;
-	genClkReg = (GenClockRegMap *)(GCLK);
-	
+		
 	//Initialize generic clock to use internal clock for Async
 	initClockNVIC();
 	
@@ -111,7 +110,7 @@ uartPort::uartPort(uartRegisterMap* baseAddr, uint32_t baudRate)
 {
 	//base addr should be only Serial 0.
 	uartRegisters = baseAddr;
-	genClkReg = (GenClockRegMap *)(GCLK);
+	
 	
 	//Initialize generic clock to use internal clock for Async
 	initClockNVIC();
@@ -180,7 +179,6 @@ uartPort::uartPort(uartRegisterMap* baseAddr)
 {
 	//base addr should be only Serial 0.
 	uartRegisters = baseAddr;
-	genClkReg = (GenClockRegMap *)(GCLK);
 	
 	//Initialize generic clock to use internal clock for Async
 	initClockNVIC();
@@ -212,9 +210,8 @@ uartPort::uartPort(uartRegisterMap* baseAddr)
 	uartRegisters->CTRLA.bit_data.mode = 0x1;
 	
 	//Set enable interrupts
-	uartRegisters->INTENSET.bit_data.dre = 1;
 	uartRegisters->INTENSET.bit_data.rxc = 1;
-	uartRegisters->INTENSET.bit_data.txc = 1;
+	uartRegisters->INTENSET.bit_data.err = 1;
 	
 	//Set char size
 	uartRegisters->CTRLB.bit_data.chsize = 0x0;
@@ -245,28 +242,49 @@ uartPort::uartPort(uartRegisterMap* baseAddr)
 	while (uartRegisters->SYNCBUSY.bit_data.enable){};		
 }
 
-uint32_t uartPort::write(uint8_t* buf, uint32_t maxSize)
+void uartPort::write(uint8_t* buf, uint16_t maxSize)
 {
-	uint32_t i = 0;
-	for(i = 0; i < maxSize; i++)
-	{	
-		while(!(uartRegisters->INTFLAG.bit_data.dre)){};		
-		uartRegisters->DATA.bit_data.data = buf[i];
+	for(uint16_t i = 0; i < maxSize; i++)
+	{
+		writeByte(buf[i]);
 	}
-	return i;
 }
+
+void uartPort::writeByte(uint8_t byte)
+{
+	tx_buffer.buf[tx_buffer.tail] = byte;
+	
+	if(tx_buffer.tail >= sizeof(tx_buffer.buf)) //if tail is at the end of transmit data buffer
+	{
+		tx_buffer.tail = 0;   //reset tail
+	}
+	else
+	{
+		tx_buffer.tail++;    //increment tail
+	}
+}
+
 
 uint8_t uartPort::readByte()
 {
-	if(receivedBytes.head == receivedBytes.tail)
+	uint8_t byte;
+	if(rx_buffer.head == rx_buffer.tail) //no bytes in the buffer to read
 	{
-		return NULL;		
+		byte = NULL;		
 	}
-	else if(receivedBytes.head >= sizeof(receivedBytes.buf))
+	else  //bytes exist in ring buffer
 	{
-		receivedBytes.head = 0;
+		byte = rx_buffer.buf[rx_buffer.head];
+		
+		//increment head in the ring buffer
+		rx_buffer.head++;
+		if(rx_buffer.head >= sizeof(rx_buffer.buf))
+		{
+			rx_buffer.head = 0;
+		}
 	}
-	return receivedBytes.buf[receivedBytes.head++];
+	
+	return byte;
 }
 
 
@@ -282,16 +300,37 @@ void uartPort::IRQ_Handler(int portNum)
 		//clear FERR bit by writing a 1 to it
 		uport->uartRegisters->STATUS.bit_data.ferr = 1;
 	}
-	if(uport->uartRegisters->INTFLAG.bit_data.rxc == 1) //data available to be read
+	if( (uport->uartRegisters->INTFLAG.bit_data.rxc == 1) ) //data available to be read
 	{
-		if(uport->receivedBytes.tail >= sizeof(uport->receivedBytes.buf)) //tail is at the end of the buf length
+		uport->rx_buffer.buf[uport->rx_buffer.tail] = uport->uartRegisters->DATA.bit_data.data; //read DATA reg
+		
+		if(uport->rx_buffer.tail >= sizeof(uport->rx_buffer.buf)) //if tail is at the end of the buf length
 		{
-			uport->receivedBytes.tail = 0;
+			uport->rx_buffer.tail = 0;  //reset tail
 		}
-		uport->receivedBytes.buf[uport->receivedBytes.tail++] = uport->uartRegisters->DATA.bit_data.data;
+		else
+		{
+			uport->rx_buffer.tail++;  //else increment tail
+		}
 	}
-	if(uport->uartRegisters->INTFLAG.bit_data.dre == 1) //data reg empty, proceed to write to DATA reg
-	{}
+	if( (uport->uartRegisters->INTFLAG.bit_data.txc == 1)  &&  (uport->tx_buffer.head != uport->tx_buffer.tail) ) //data reg empty, proceed to write to DATA reg
+	{
+		uport->uartRegisters->DATA.bit_data.data = (uint16_t)uport->tx_buffer.buf[uport->tx_buffer.head]; //write head byte to DATA reg
+		
+		if(uport->tx_buffer.head >= sizeof(uport->tx_buffer.buf)) //if head is at the end of transmit data buffer
+		{
+			uport->tx_buffer.head = 0;   //reset head
+		}
+		else
+		{
+			uport->rx_buffer.head++;  //else increment head
+		}
+	}
+	else  //no data to transmit but txc interrupt fired
+	{
+		//clear txc interrupt as there is no more data to transmit
+		uport->uartRegisters->INTENCLR.bit_data.txc = 1;
+	}
 }
 
 uartPort::~uartPort()
@@ -307,10 +346,10 @@ void uartPort::initClockNVIC( void )
 
 	if(uartRegisters == SERIAL0)
 	{
-		clockId = GCLK_SERCOM0_CLKID;
+		clockId = GCM_SERCOM0_CORE;
 		IdNvic = SERCOM0_IRQn;
-	}/*
-	else if(sercom == SERCOM1)
+	}
+	/*else if(sercom == SERCOM1)
 	{
 		clockId = GCM_SERCOM1_CORE;
 		IdNvic = SERCOM1_IRQn;
@@ -338,26 +377,26 @@ void uartPort::initClockNVIC( void )
 		clockId = GCM_SERCOM5_CORE;
 		IdNvic = SERCOM5_IRQn;
 	}
-	#endif // SERCOM5*/
+	#endif // SERCOM5
 
 	if ( IdNvic == PendSV_IRQn )
 	{
 		// We got a problem here
 		return ;
-	}
+	}*/
 
 	// Setting NVIC
 	NVIC_EnableIRQ(IdNvic);
-	NVIC_SetPriority (IdNvic, ((1<<2) - 1));  /* set Priority */ //default value
+	NVIC_SetPriority (IdNvic, SERCOM_NVIC_PRIORITY);  /* set Priority */
 
 	//Setting clock
-	genClkReg->CLKCTRL.reg_value = GCLK_CLKCTRL_ID( clockId ) | // Generic Clock 0 (SERCOMx)
+	GCLK->CLKCTRL.reg = GCLK_CLKCTRL_ID( clockId ) | // Generic Clock 0 (SERCOMx)
 	GCLK_CLKCTRL_GEN_GCLK0 | // Generic Clock Generator 0 is source
 	GCLK_CLKCTRL_CLKEN ;
 
-	while ( genClkReg->STATUS.reg_value & GCLK_STATUS_SYNCBUSY )
+	while ( GCLK->STATUS.reg & GCLK_STATUS_SYNCBUSY )
 	{
 		/* Wait for synchronization */
-		//vNopDelayMS(100);
 	}
 }
+

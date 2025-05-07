@@ -35,6 +35,10 @@ void setup()
 	pinMode(LED_PIN, OUTPUT);
 	digitalWrite(LED_PIN, LOW);
 	
+	uartPort* serial0 = uartPort::getInstance(0);
+	
+	serial0->write((uint8_t*)"HELLO", sizeof("HELLO"));
+	
   // Create the threads that will be managed by the rtos
   // Sets the stack size and priority of each task
   // Also initializes a handler pointer to each task, which are important to communicate with and retrieve info from tasks
