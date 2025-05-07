@@ -73,9 +73,9 @@ uartPort::uartPort(uartRegisterMap* baseAddr, uint8_t txPin, uint8_t rxPin, uint
 	uartRegisters->CTRLA.bit_data.mode = 0x1;
 	
 	//Set enable interrupts
-	uartRegisters->INTENSET.bit_data.dre = 1;
+	uartRegisters->INTENSET.bit_data.err = 1;
 	uartRegisters->INTENSET.bit_data.rxc = 1;
-	uartRegisters->INTENSET.bit_data.txc = 1;
+	uartRegisters->INTENSET.bit_data.txc = 1;	
 	
 	//Set char size
 	uartRegisters->CTRLB.bit_data.chsize = 0x0;
@@ -142,9 +142,10 @@ uartPort::uartPort(uartRegisterMap* baseAddr, uint32_t baudRate)
 	uartRegisters->CTRLA.bit_data.mode = 0x1;
 	
 	//Set enable interrupts
-	uartRegisters->INTENSET.bit_data.dre = 1;
+	uartRegisters->INTENSET.bit_data.err = 1;
 	uartRegisters->INTENSET.bit_data.rxc = 1;
-	uartRegisters->INTENSET.bit_data.txc = 1;
+	uartRegisters->INTENSET.bit_data.txc = 1;	
+
 	
 	//Set char size
 	uartRegisters->CTRLB.bit_data.chsize = 0x0;
@@ -210,8 +211,10 @@ uartPort::uartPort(uartRegisterMap* baseAddr)
 	uartRegisters->CTRLA.bit_data.mode = 0x1;
 	
 	//Set enable interrupts
-	uartRegisters->INTENSET.bit_data.rxc = 1;
 	uartRegisters->INTENSET.bit_data.err = 1;
+	uartRegisters->INTENSET.bit_data.rxc = 1;
+	uartRegisters->INTENSET.bit_data.txc = 1;	
+	
 	
 	//Set char size
 	uartRegisters->CTRLB.bit_data.chsize = 0x0;
@@ -242,49 +245,112 @@ uartPort::uartPort(uartRegisterMap* baseAddr)
 	while (uartRegisters->SYNCBUSY.bit_data.enable){};		
 }
 
-void uartPort::write(uint8_t* buf, uint16_t maxSize)
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+// Purpose:Write buffer of size 'maxSize' into the Uart ring buffer.
+// Parameters:
+// Result: 1: Success, 0:Failure.
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+uint32_t uartPort::write(uint8_t* buf, uint16_t maxSize)
 {
+	uint32_t result = 1;
+	
 	for(uint16_t i = 0; i < maxSize; i++)
 	{
-		writeByte(buf[i]);
+		if( !(result= writeByte(buf[i])) )
+		{
+			break;
+		};
 	}
+	
+	return result;
 }
 
-void uartPort::writeByte(uint8_t byte)
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+// Purpose:Write 1 bytes into the Uart ring buffer.
+// Parameters:
+// Result: 1: Success, 0:Failure.
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+uint32_t uartPort::writeByte(uint8_t byte)
 {
-	tx_buffer.buf[tx_buffer.tail] = byte;
+	uint32_t result = 1;
 	
-	if(tx_buffer.tail >= sizeof(tx_buffer.buf)) //if tail is at the end of transmit data buffer
+	//kickstart transmission
+	if(this->uartRegisters->INTFLAG.bit_data.dre)
 	{
-		tx_buffer.tail = 0;   //reset tail
+		this->uartRegisters->DATA.bit_data.data = byte;
 	}
 	else
 	{
-		tx_buffer.tail++;    //increment tail
+		tx_buffer.buf[tx_buffer.tail] = byte;
+			
+		if(++tx_buffer.tail >= sizeof(tx_buffer.buf)) //if tail is at the end of transmit data buffer
+		{
+			tx_buffer.tail = 0;   //reset tail
+		}
 	}
+	
+	return result;
 }
 
-
-uint8_t uartPort::readByte()
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+// Purpose:
+// Parameters:
+// Result: 
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+uint32_t uartPort::peekRcvd()
 {
-	uint8_t byte;
+	uint32_t cnt;
+	cnt = (rx_buffer.tail >= rx_buffer.head)? (rx_buffer.tail - rx_buffer.head):(UART_RING_BUFFER_SIZE - (rx_buffer.head - rx_buffer.tail));
+	return(cnt);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+// Purpose:read 1 bytes from the Uart ring buffer.
+// Parameters:
+// Result: 1: Success, 0:Failure.
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+uint32_t uartPort::readByte(uint8_t* buf)
+{
+	uint32_t result = 1;
+
 	if(rx_buffer.head == rx_buffer.tail) //no bytes in the buffer to read
 	{
-		byte = NULL;		
+		//ring buffer empty,
+		result = 0;
 	}
 	else  //bytes exist in ring buffer
 	{
-		byte = rx_buffer.buf[rx_buffer.head];
+		*buf = rx_buffer.buf[rx_buffer.head];
 		
 		//increment head in the ring buffer
-		rx_buffer.head++;
-		if(rx_buffer.head >= sizeof(rx_buffer.buf))
+		if(++rx_buffer.head >= sizeof(rx_buffer.buf))
 		{
 			rx_buffer.head = 0;
 		}
 	}
 	
-	return byte;
+	return result;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+// Purpose:read Uart received content into the buffer.
+// Parameters:
+// Result: 1: Success, 0:Failure.
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+uint32_t uartPort::read(uint8_t* buf, uint32_t* bytesread)
+{
+	uint32_t result = 1;
+	
+	*bytesread = 0;
+
+	//while there are bytes to read
+	while(readByte(&buf[*bytesread]))
+	{
+		*bytesread++;
+	}
+
+	return result;
 }
 
 
@@ -292,45 +358,41 @@ void uartPort::IRQ_Handler(int portNum)
 {
 	uartPort* uport = uartPort::getInstance(portNum);
 	
-	if(uport->uartRegisters->STATUS.bit_data.ferr == 1) //frame error occurred
+	if(uport->uartRegisters->INTFLAG.bit_data.err == 1) //frame error occurred
 	{
 		//discard byte in DATA register by reading it and not saving it
 		uint8_t dataByte = uport->uartRegisters->DATA.bit_data.data;
 		
 		//clear FERR bit by writing a 1 to it
-		uport->uartRegisters->STATUS.bit_data.ferr = 1;
+		uport->uartRegisters->INTFLAG.bit_data.err = 1;
 	}
+	
 	if( (uport->uartRegisters->INTFLAG.bit_data.rxc == 1) ) //data available to be read
 	{
 		uport->rx_buffer.buf[uport->rx_buffer.tail] = uport->uartRegisters->DATA.bit_data.data; //read DATA reg
 		
-		if(uport->rx_buffer.tail >= sizeof(uport->rx_buffer.buf)) //if tail is at the end of the buf length
+		if(++uport->rx_buffer.tail >= sizeof(uport->rx_buffer.buf)) //if tail is at the end of the buf length
 		{
 			uport->rx_buffer.tail = 0;  //reset tail
 		}
-		else
-		{
-			uport->rx_buffer.tail++;  //else increment tail
-		}
 	}
-	if( (uport->uartRegisters->INTFLAG.bit_data.txc == 1)  &&  (uport->tx_buffer.head != uport->tx_buffer.tail) ) //data reg empty, proceed to write to DATA reg
+
+
+	//clear txc interrupt as there is no more data to transmit
+	uport->uartRegisters->INTFLAG.bit_data.txc = 1;
+
+
+	if( (uport->uartRegisters->INTFLAG.bit_data.dre)  &&
+	    (uport->tx_buffer.head != uport->tx_buffer.tail) ) //data reg empty, proceed to write to DATA reg
 	{
 		uport->uartRegisters->DATA.bit_data.data = (uint16_t)uport->tx_buffer.buf[uport->tx_buffer.head]; //write head byte to DATA reg
 		
-		if(uport->tx_buffer.head >= sizeof(uport->tx_buffer.buf)) //if head is at the end of transmit data buffer
+		if(++uport->tx_buffer.head >= sizeof(uport->tx_buffer.buf)) //if head is at the end of transmit data buffer
 		{
 			uport->tx_buffer.head = 0;   //reset head
 		}
-		else
-		{
-			uport->rx_buffer.head++;  //else increment head
-		}
 	}
-	else  //no data to transmit but txc interrupt fired
-	{
-		//clear txc interrupt as there is no more data to transmit
-		uport->uartRegisters->INTENCLR.bit_data.txc = 1;
-	}
+
 }
 
 uartPort::~uartPort()

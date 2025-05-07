@@ -11,31 +11,31 @@
 
 void serialMonitor(void *p)
 {
-	//get instance of serial ports
-	uartPort* serial0 = uartPort::getInstance(0);
-	
 	uint8_t byteData;
 	uint8_t dataReceived[100];
+	uint32_t counter;	
+		
+	//get instance of serial ports
+	uartPort* serial0 = uartPort::getInstance(0);
+
 	while (1)
 	{
-		//check if ring buffer contains data
-		byteData = serial0->readByte();
-		int counter = 0;
-		
-		if(byteData != NULL)	//if yes, read all the data with while loop
+		//check if ring buffer contains data		
+		counter = serial0->peekRcvd();
+		if(counter)
 		{
-			do 
-			{
-				dataReceived[counter] = byteData;
-				counter++;
-				byteData = serial0->readByte();
-				
-			} while (byteData != NULL);
-		}
+			//read all the bytes
+			serial0->write((uint8_t*)"bytes rcvd", 10);
+		}		
+		//read bytes received
+		serial0->read(dataReceived, &counter);
 		
-		serial0->write((uint8_t*)"HELLO", sizeof("HELLO"));
+		//send bytes.
+		//serial0->write(dataReceived, counter);
 				
-		//sleep
+		counter = serial0->write((uint8_t*)"sm test", 10);
+				
+		//sleep for 1000ticks.
 		vTaskDelay(1000);	
 	}//end while
 }//end task
