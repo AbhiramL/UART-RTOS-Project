@@ -24,16 +24,17 @@ void serialMonitor(void *p)
 		counter = serial0->peekRcvd();
 		if(counter)
 		{
-			//read all the bytes
-			serial0->write((uint8_t*)"bytes rcvd", 10);
+			//read bytes received
+			serial0->read(dataReceived, &counter);
+			
+			//send them back 
+			serial0->write(dataReceived, counter);
+
 		}		
-		//read bytes received
-		serial0->read(dataReceived, &counter);
-		
-		//send bytes.
-		//serial0->write(dataReceived, counter);
-				
-		counter = serial0->write((uint8_t*)"sm test", 7);
+		else
+		{
+			serial0->write((uint8_t*)"U",1);
+		}
 				
 		//sleep for 1000ticks.
 		vTaskDelay(1000);	

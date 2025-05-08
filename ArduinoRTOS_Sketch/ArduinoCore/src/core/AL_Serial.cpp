@@ -347,7 +347,7 @@ uint32_t uartPort::read(uint8_t* buf, uint32_t* bytesread)
 	//while there are bytes to read
 	while(readByte(&buf[*bytesread]))
 	{
-		*bytesread++;
+		*bytesread = *bytesread + 1;
 	}
 
 	return result;
