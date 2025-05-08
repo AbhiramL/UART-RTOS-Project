@@ -208,7 +208,8 @@ Uart Serial1( &sercom0, PIN_SERIAL1_RX, PIN_SERIAL1_TX, PAD_SERIAL1_RX, PAD_SERI
 Uart Serial( &sercom5, PIN_SERIAL_RX, PIN_SERIAL_TX, PAD_SERIAL_RX, PAD_SERIAL_TX ) ;
 void SERCOM0_Handler()
 {
-  Serial1.IrqHandler();
+	uartPort* uport = uartPort::getInstance(0);
+	uport->IRQ_Handler(0);
 }
 
 void SERCOM5_Handler()

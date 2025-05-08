@@ -7,80 +7,8 @@
 #ifndef CUSTOM_UART_REG_DEF_H_
 #define CUSTOM_UART_REG_DEF_H_
 
-#define GCLK              0x40000C00UL /**< \brief (GCLK) APB Base Address */
-#define GCLK_SERCOM0_CLKID          (0x14U)
-#define GCLK_SERCOM1_CLKID          (0x15U)
-#define GCLK_SERCOM2_CLKID          (0x16U)
-#define GCLK_SERCOM3_CLKID          (0x17U)
-
 #define SERIAL0_BASE_ADDR 0x42000800UL
 #define SERIAL0 ((uartRegisterMap *)SERIAL0_BASE_ADDR)
-
-
-/****************************************************/
-//Generic clock register structure
-typedef union {
-	struct {
-		uint8_t  swrst:1;          /*!< bit:      0  Software Reset                     */
-		uint8_t  :7;               /*!< bit:  1.. 7  Reserved                           */
-	} bit_data;                       /*!< Structure used for bit  access                  */
-	uint8_t reg_value;                 /*!< Type      used for register access              */
-} GCLK_CTRL_register;
-
-typedef union {
-	struct {
-		uint8_t  :7;               /*!< bit:  0.. 6  Reserved                           */
-		uint8_t  syncbusy:1;       /*!< bit:      7  Synchronization Busy Status        */
-	} bit_data;                       /*!< Structure used for bit  access                  */
-	uint8_t reg_value;                 /*!< Type      used for register access              */
-} GCLK_STATUS_register;
-
-typedef union {
-	struct {
-		uint16_t id:6;             /*!< bit:  0.. 5  Generic Clock Selection ID         */
-		uint16_t :2;               /*!< bit:  6.. 7  Reserved                           */
-		uint16_t gen:4;            /*!< bit:  8..11  Generic Clock Generator            */
-		uint16_t :2;               /*!< bit: 12..13  Reserved                           */
-		uint16_t clken:1;          /*!< bit:     14  Clock Enable                       */
-		uint16_t writeLock:1;        /*!< bit:     15  Write Lock                         */
-	} bit_data;                       /*!< Structure used for bit  access                  */
-	uint16_t reg_value;                /*!< Type      used for register access              */
-} GCLK_CLKCTRL_register;
-
-typedef union {
-	struct {
-		uint32_t id:4;             /*!< bit:  0.. 3  Generic Clock Generator Selection  */
-		uint32_t :4;               /*!< bit:  4.. 7  Reserved                           */
-		uint32_t src:5;            /*!< bit:  8..12  Source Select                      */
-		uint32_t :3;               /*!< bit: 13..15  Reserved                           */
-		uint32_t genen:1;          /*!< bit:     16  Generic Clock Generator Enable     */
-		uint32_t idc:1;            /*!< bit:     17  Improve Duty Cycle                 */
-		uint32_t oov:1;            /*!< bit:     18  Output Off Value                   */
-		uint32_t oe:1;             /*!< bit:     19  Output Enable                      */
-		uint32_t divsel:1;         /*!< bit:     20  Divide Selection                   */
-		uint32_t rstdby:1;       /*!< bit:     21  Run in Standby                     */
-		uint32_t :10;              /*!< bit: 22..31  Reserved                           */
-	} bit_data;                       /*!< Structure used for bit  access                  */
-	uint32_t reg_value;                /*!< Type      used for register access              */
-} GCLK_GENCTRL_register;
-
-typedef union {
-	struct {
-		uint32_t id:4;             /*!< bit:  0.. 3  Generic Clock Generator Selection  */
-		uint32_t :4;               /*!< bit:  4.. 7  Reserved                           */
-		uint32_t divf:16;           /*!< bit:  8..23  Division Factor                    */
-		uint32_t :8;               /*!< bit: 24..31  Reserved                           */
-	} bit_data;                       /*!< Structure used for bit  access                  */
-	uint32_t reg_value;                /*!< Type      used for register access              */
-} GCLK_GENDIV_register;
-
-typedef struct {
-	__IO GCLK_CTRL_register            CTRL;        /**< \brief Offset: 0x0 (R/W  8) Control */
-	__I  GCLK_STATUS_register          STATUS;      /**< \brief Offset: 0x1 (R/   8) Status */
-	__IO GCLK_CLKCTRL_register         CLKCTRL;     /**< \brief Offset: 0x2 (R/W 16) Generic Clock Control */
-	__IO GCLK_GENCTRL_register         GENCTRL;     /**< \brief Offset: 0x4 (R/W 32) Generic Clock Generator Control */
-	__IO GCLK_GENDIV_register          GENDIV;      /**< \brief Offset: 0x8 (R/W 32) Generic Clock Generator Division */
-} GenClockRegMap;
 
 /****************************************************/
 //unique register structure for each type of register
