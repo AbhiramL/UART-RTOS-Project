@@ -37,7 +37,7 @@ uartPort* uartPort::getInstance(int portNum)
 	return instance;
 }
 
-
+/*
 uartPort::uartPort(uartRegisterMap* baseAddr, uint8_t txPin, uint8_t rxPin, uint32_t baudRate)
 {
 	//base addr should be only Serial 0.
@@ -175,7 +175,7 @@ uartPort::uartPort(uartRegisterMap* baseAddr, uint32_t baudRate)
 	
 	while (uartRegisters->SYNCBUSY.bit_data.enable){};
 }
-
+*/
 uartPort::uartPort(uartRegisterMap* baseAddr)
 {
 	//base addr should be only Serial 0.

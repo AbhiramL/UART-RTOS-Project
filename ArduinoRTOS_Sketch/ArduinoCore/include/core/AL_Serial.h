@@ -33,8 +33,8 @@ class uartPort
 		};
 		
 		uartPort(uartRegisterMap* baseAddr);
-		uartPort(uartRegisterMap* baseAddr, uint32_t baudRate);
-		uartPort(uartRegisterMap* baseAddr, uint8_t txPin, uint8_t rxPin, uint32_t baudRate);
+		//uartPort(uartRegisterMap* baseAddr, uint32_t baudRate);
+		//uartPort(uartRegisterMap* baseAddr, uint8_t txPin, uint8_t rxPin, uint32_t baudRate);
 		
 		void initClockNVIC();
 		
